@@ -25,15 +25,39 @@ jobs:
         mkdir -p static
         mkdir -p templates
         
+    - name: Create deployment requirements file
+      run: |
+        cat > deployment-requirements.txt << EOF
+        fastapi==0.104.1
+        uvicorn==0.23.2
+        python-multipart==0.0.6
+        numpy>=1.24.0
+        opencv-python-headless>=4.8.0
+        torch==2.0.1
+        ultralytics==8.0.196
+        jinja2==3.1.2
+        gunicorn==21.2.0
+        pillow>=10.0.0
+        EOF
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r deployment-requirements.txt
         
-    - name: Copy application files
+    - name: Prepare deployment files
       run: |
-        # Copy main.py to the root for App Service deployment
-        cp runs/detect/yolov8m_kitti_enhanced/weights/main.py app.py
+        # Copy deployment-requirements.txt to root requirements.txt
+        cp deployment-requirements.txt requirements.txt
+        
+        # Make sure startup script is executable
+        chmod +x runs/detect/yolov8m_kitti_enhanced/weights/startup.sh
+        cp runs/detect/yolov8m_kitti_enhanced/weights/startup.sh .
+        
+        # Create .deployment file
+        echo "[config]" > .deployment
+        echo "SCM_DO_BUILD_DURING_DEPLOYMENT=true" >> .deployment
+        echo "PYTHON_ENABLE_WORKER_EXTENSIONS=1" >> .deployment
         
     - name: Create deployment package
       run: |
