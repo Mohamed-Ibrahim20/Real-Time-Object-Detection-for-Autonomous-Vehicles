@@ -79,7 +79,7 @@ jobs:
       with:
         server: waws-prod-fra-033.ftp.azurewebsites.windows.net
         username: AV-Real-Time-Object-Detection\$AV-Real-Time-Object-Detection
-        password: ${{ secrets.FTP_PASSWORD }}
+        password: zn18hfyaaCmLQGsT6860WrckgG6fMkvFCS6edPEg7JailqrRhwpfX7wNrHc1
         local-dir: ./
         server-dir: /site/wwwroot/
         exclude: |
