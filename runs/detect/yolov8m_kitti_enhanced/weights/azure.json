@@ -1,0 +1,4 @@
+{
+  "name": "AV-Real-Time-Object-Detection",
+  "startupCommand": "gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app --bind=0.0.0.0 --timeout 600"
+} 
