@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Object Detection with YOLO</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .upload-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .video-container {
+            position: relative;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Object Detection with YOLO</h1>
+        
+        <div class="upload-section">
+            <h2>Upload Image or Video for Detection</h2>
+            <form id="upload-form">
+                <input type="file" id="file-input" name="file" accept="image/*,video/*" />
+                <button type="submit" class="btn">Upload and Detect</button>
+                <button type="button" id="clear-btn" class="btn">Clear</button>
+            </form>
+        </div>
+        
+        <div id="loading" style="display:none;">
+            <p>Processing... Please wait.</p>
+        </div>
+        
+        <div id="result"></div>
+        
+        <script>
+            const form = document.getElementById("upload-form");
+            const loading = document.getElementById("loading");
+            
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById("file-input");
+                const resultDiv = document.getElementById("result");
+                resultDiv.innerHTML = "";
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    resultDiv.innerHTML = "<p>Please select a file.</p>";
+                    return;
+                }
+                
+                loading.style.display = "block";
+                const formData = new FormData();
+                formData.append("file", file);
+                
+                try {
+                    if (file.type.startsWith('video')) {
+                        // Handle video upload and streaming
+                        const uploadResp = await fetch('/upload-video', { 
+                            method: 'POST', 
+                            body: formData 
+                        });
+                        
+                        if (!uploadResp.ok) {
+                            const error = await uploadResp.json();
+                            resultDiv.innerHTML = `<p>Error: ${error.detail || "Unknown error"}</p>`;
+                            loading.style.display = "none";
+                            return;
+                        }
+                        
+                        const data = await uploadResp.json();
+                        
+                        // Display the streaming video with object detection
+                        resultDiv.innerHTML = `
+                            <h3>Video Object Detection</h3>
+                            <div class="video-container">
+                                <img src="${data.stream_url}" 
+                                     alt="Video stream with object detection" 
+                                     style="max-width:100%; border: 1px solid #ddd;" />
+                            </div>
+                        `;
+                    } else {
+                        // Handle image detection
+                        const response = await fetch('/predict', { 
+                            method: 'POST', 
+                            body: formData 
+                        });
+                        
+                        if (!response.ok) {
+                            const error = await response.json();
+                            resultDiv.innerHTML = `<p>Error: ${error.detail || error.error || "Unknown error"}</p>`;
+                            loading.style.display = "none";
+                            return;
+                        }
+                        
+                        const blob = await response.blob();
+                        const url = URL.createObjectURL(blob);
+                        resultDiv.innerHTML = `
+                            <h3>Image Detection Result</h3>
+                            <img src="${url}" alt="Detection result" style="max-width:100%; border: 1px solid #ddd;"/>
+                        `;
+                    }
+                } catch (err) {
+                    resultDiv.innerHTML = `<p>Error: ${err.message}</p>`;
+                } finally {
+                    loading.style.display = "none";
+                }
+            });
+            
+            // Clear button handler
+            const clearBtn = document.getElementById("clear-btn");
+            clearBtn.addEventListener("click", () => {
+                document.getElementById("file-input").value = "";
+                document.getElementById("result").innerHTML = "";
+            });
+        </script>
+    </div>
+</body>
+</html> 
