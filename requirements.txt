@@ -3,9 +3,13 @@ mlflow==2.22.0
 opencv_python==4.11.0.86
 pandas==2.2.3
 Pillow==11.2.1
-torch==2.6.0+cu118
+torch
 ultralytics==8.3.107
 numpy
 tqdm
 pyyaml
 scipy
+fastapi==0.104.1
+uvicorn==0.23.2
+python-multipart==0.0.6
+gunicorn==21.2.0
