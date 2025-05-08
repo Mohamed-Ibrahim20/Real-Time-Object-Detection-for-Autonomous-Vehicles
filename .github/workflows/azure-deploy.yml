@@ -64,27 +64,13 @@ jobs:
         # Create a deployment package with all required files
         zip -r deployment.zip ./* -x "*.git*" -x "*.ipynb" -x "testVid/*" -x "predictions/*"
         
-    - name: Deploy to Azure App Service (WebApp-Deploy)
-      id: deploy-webapp
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        
+    - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
-      continue-on-error: true
       with:
         app-name: AV-Real-Time-Object-Detection
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: ./deployment.zip
-        
-    - name: Deploy via FTP
-      if: steps.deploy-webapp.outcome == 'failure'
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-      with:
-        server: waws-prod-fra-033.ftp.azurewebsites.windows.net
-        username: AV-Real-Time-Object-Detection\$AV-Real-Time-Object-Detection
-        password: zn18hfyaaCmLQGsT6860WrckgG6fMkvFCS6edPEg7JailqrRhwpfX7wNrHc1
-        local-dir: ./
-        server-dir: /site/wwwroot/
-        exclude: |
-          **/.git*
-          **/.git*/**
-          **/*.ipynb
-          **/testVid/**
-          **/predictions/** 
+        package: ./deployment.zip 
