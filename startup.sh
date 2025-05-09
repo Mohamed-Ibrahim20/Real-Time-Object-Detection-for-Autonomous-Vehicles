@@ -1,4 +1,6 @@
 #!/bin/bash
+echo "Using Python version:"
+python3 --version
 
 # Set up virtual environment
 python3 -m venv /home/site/wwwroot/antenv
