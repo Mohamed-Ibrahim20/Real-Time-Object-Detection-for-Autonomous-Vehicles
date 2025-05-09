@@ -1,137 +1,215 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Object Detection for Autonomous Vehicles</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .preview {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        img, video {
-            max-width: 100%;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        input[type="file"] {
-            margin: 10px 0;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .preview {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      img,
+      video {
+        max-width: 100%;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      input[type="file"] {
+        margin: 10px 0;
+      }
+      #ImageError,
+      #VideoError {
+        color: red;
+        font-weight: bold;
+        display: none;
+      }
+      #ImageLoading,
+      #VideoLoading {
+        color: blue;
+        font-weight: bold;
+        display: none;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Real-Time Object Detection for Autonomous Vehicles</h1>
-    
+
     <div class="container">
-        <div class="card">
-            <h2>Image Detection</h2>
-            <form action="/predict" method="post" enctype="multipart/form-data" id="imageForm">
-                <input type="file" name="file" accept=".jpg,.jpeg,.png">
-                <button type="submit">Detect Objects</button>
-            </form>
-            <div class="preview" id="imagePreview"></div>
-        </div>
-        
-        <div class="card">
-            <h2>Video Detection</h2>
-            <form action="/upload-video" method="post" enctype="multipart/form-data" id="videoForm">
-                <input type="file" name="file" accept=".mp4,.avi,.mov">
-                <button type="submit">Upload Video</button>
-            </form>
-            <div class="preview" id="videoPreview"></div>
-        </div>
+      <div class="card">
+        <h2>Image Detection</h2>
+        <p id="ImageError"></p>
+        <p id="ImageLoading">Loading...</p>
+        <form
+          action="/predict"
+          method="post"
+          enctype="multipart/form-data"
+          id="imageForm"
+        >
+          <input type="file" name="file" accept=".jpg,.jpeg,.png" />
+          <button type="submit">Detect Objects</button>
+        </form>
+        <div class="preview" id="imagePreview"></div>
+      </div>
+
+      <div class="card">
+        <h2>Video Detection</h2>
+        <p id="VideoError"></p>
+        <p id="VideoLoading">Loading...</p>
+        <form
+          action="/upload-video"
+          method="post"
+          enctype="multipart/form-data"
+          id="videoForm"
+        >
+          <input type="file" name="file" accept=".mp4,.avi,.mov" />
+          <button type="submit">Upload Video</button>
+        </form>
+        <div class="preview" id="videoPreview"></div>
+      </div>
     </div>
 
     <script>
-        document.getElementById('imageForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const imageUrl = URL.createObjectURL(blob);
-                    const img = document.createElement('img');
-                    img.src = imageUrl;
-                    
-                    const preview = document.getElementById('imagePreview');
-                    preview.innerHTML = '';
-                    preview.appendChild(img);
-                } else {
-                    alert('Error: ' + (await response.text()));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred during processing');
-            }
-        });
+      const imageError = document.getElementById("ImageError");
+      const videoError = document.getElementById("VideoError");
+      const imageLoading = document.getElementById("ImageLoading");
+      const videoLoading = document.getElementById("VideoLoading");
 
-        document.getElementById('videoForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            
-            try {
-                const response = await fetch('/upload-video', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const iframe = document.createElement('iframe');
-                    iframe.src = data.stream_url;
-                    iframe.width = '640';
-                    iframe.height = '480';
-                    iframe.style.border = 'none';
-                    
-                    const preview = document.getElementById('videoPreview');
-                    preview.innerHTML = '';
-                    preview.appendChild(iframe);
-                } else {
-                    alert('Error: ' + (await response.text()));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred during processing');
-            }
-        });
+      const imageErrorHandler = (error) => {
+        if (!error) {
+          imageError.style.display = "none";
+          return;
+        }
+        imageError.innerHTML =
+          typeof error === "object" && error !== null && Object.keys(error).length > 0
+            ? error.detail
+            : error;
+        imageError.style.display = "block";
+      };
+
+      const videoErrorHandler = (error) => {
+        if (!error) {
+          videoError.style.display = "none";
+          return;
+        }
+        videoError.innerHTML =
+          typeof error === "object" && error !== null && Object.keys(error).length > 0
+            ? error.detail
+            : error;
+        videoError.style.display = "block";
+      };
+
+      document.getElementById("imageForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        if (!this.file.value) {
+          imageErrorHandler("Please select an image file.");
+          return;
+        }
+
+        imageErrorHandler(null);
+        imageLoading.style.display = "block";
+
+        const formData = new FormData(this);
+
+        try {
+          const response = await fetch("/predict", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const imageUrl = URL.createObjectURL(blob);
+            const img = document.createElement("img");
+            img.src = imageUrl;
+
+            const preview = document.getElementById("imagePreview");
+            preview.innerHTML = "";
+            preview.appendChild(img);
+          } else {
+            const errorText = await response.text();
+            imageErrorHandler("Error: " + errorText);
+          }
+        } catch (error) {
+          imageErrorHandler("An error occurred during processing: " + error);
+        } finally {
+          imageLoading.style.display = "none";
+        }
+      });
+
+      document.getElementById("videoForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        if (!this.file.value) {
+          videoErrorHandler("Please select a video file.");
+          return;
+        }
+
+        videoErrorHandler(null);
+        videoLoading.style.display = "block";
+
+        const formData = new FormData(this);
+
+        try {
+          const response = await fetch("/upload-video", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const iframe = document.createElement("iframe");
+            iframe.src = data.stream_url;
+            iframe.width = "640";
+            iframe.height = "480";
+            iframe.style.border = "none";
+
+            const preview = document.getElementById("videoPreview");
+            preview.innerHTML = "";
+            preview.appendChild(iframe);
+          } else {
+            const errorText = await response.text();
+            videoErrorHandler("Error: " + errorText);
+          }
+        } catch (error) {
+          videoErrorHandler("An error occurred during processing: " + error);
+        } finally {
+          videoLoading.style.display = "none";
+        }
+      });
     </script>
-</body>
-</html> 
+  </body>
+</html>

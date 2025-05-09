@@ -1,9 +1,8 @@
 import os
 import numpy as np
 import cv2
-import torch
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse, Response, FileResponse, StreamingResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from ultralytics import YOLO
@@ -17,7 +16,8 @@ templates = Jinja2Templates(directory="templates")
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS_IMG = {'png', 'jpg', 'jpeg'}
 ALLOWED_EXTENSIONS_VID = {'mp4', 'avi', 'mov'}
-MODEL_PATH = "best.pt"  # Ensure best.pt is in /app
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "best.pt")
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -30,7 +30,8 @@ def load_model():
         app.state.model = YOLO(MODEL_PATH)
         # Store class names mapping
         app.state.names = app.state.model.names
-        print(f"PyTorch model loaded successfully from {MODEL_PATH}")
+        # print(f"PyTorch model loaded successfully from {MODEL_PATH}")
+
     except Exception as e:
         print(f"Error loading PyTorch model: {e}")
         app.state.model = None
@@ -39,26 +40,6 @@ def load_model():
 def allowed_file(filename: str, extensions: set) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
 
-
-def preprocess_image(img_bgr: np.ndarray) -> np.ndarray:
-    img_resized = cv2.resize(img_bgr, (640, 640))
-    img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-    img_norm = img_rgb.astype(np.float32) / 255.0
-    return np.transpose(img_norm, (2, 0, 1))[np.newaxis, ...]
-
-
-def run_inference(input_tensor: np.ndarray):
-    sess = app.state.ort_session
-    if sess is None:
-        return None, None, None
-    inputs = {sess.get_inputs()[0].name: input_tensor}
-    output_names = [o.name for o in sess.get_outputs()]
-    raw = sess.run(output_names, inputs)
-    # Assuming model outputs three arrays: boxes, scores, labels
-    if len(raw) >= 3:
-        return raw[0], raw[1], raw[2]
-    else:
-        return None, None, None
 
 
 @app.on_event("startup")
@@ -77,7 +58,7 @@ async def index(request: Request):
 
 
 @app.post("/predict")
-async def predict(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def predict(file: UploadFile = File(...)):
     if app.state.model is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
 
@@ -122,7 +103,7 @@ async def predict(background_tasks: BackgroundTasks, file: UploadFile = File(...
 
 # Re-introduce real-time video streaming endpoints
 @app.post("/upload-video")
-async def upload_video(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def upload_video(request: Request, file: UploadFile = File(...)):
     if app.state.model is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
         
@@ -207,4 +188,4 @@ def stream_video(filename: str):
 # Add entrypoint for running with Uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000) 
+    uvicorn.run("main:app", port=8000) 

@@ -33,3 +33,9 @@ uploads/
 # OS Files
 .DS_Store
 Thumbs.db 
+
+# Predictions
+predictions/
+
+# Test Videos
+testVid/
